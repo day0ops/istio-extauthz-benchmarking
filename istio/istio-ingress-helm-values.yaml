@@ -1,0 +1,67 @@
+name: "istio-ingressgateway-${ISTIO_REVISION}"
+revision: "${ISTIO_REVISION}"
+
+rbac:
+  enabled: true
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+replicas: 4
+
+autoscaling:
+  enabled: true
+  minReplicas: 4
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+labels:
+  app: istio-ingressgateway
+  istio: ingressgateway
+
+# Annotations to apply to all resources
+annotations: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+topologySpreadConstraints: []
+
+affinity:
+  ## Anti-affinity to distribute across all nodes (preferred)
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - topologyKey: "kubernetes.io/hostname"
+        labelSelector:
+          matchLabels:
+            app: istio-ingressgateway
+
+service:
+  type: LoadBalancer
+  ## Bypass kube-proxy load balancing
+  externalTrafficPolicy: "Local"
+  ports:
+    - name: status-port
+      port: 15021
+      protocol: TCP
+      targetPort: 15021
+    - name: http2
+      port: 80
+      protocol: TCP
+      targetPort: 80
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: 443
+  annotations:
+    ## Provision a NLB
+    service.beta.kubernetes.io/aws-load-balancer-type: external
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    service.beta.kubernetes.io/aws-load-balancer-ip-address-type: ipv4
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /healthz/ready
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "15021"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: http

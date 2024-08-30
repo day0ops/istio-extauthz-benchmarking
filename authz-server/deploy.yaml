@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: authz
+  labels:
+    istio.io/rev: $ISTIO_REVISION
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: authz-sa
+  namespace: authz
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: authz-server
+  namespace: authz
+  labels:
+    app: authz-server
+spec:
+  ports:
+    - name: grpc
+      port: 9001
+      targetPort: 9001
+  selector:
+    app: authz-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authz-server
+  namespace: authz
+spec:
+  selector:
+    matchLabels:
+      app: authz-server
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: authz-server
+    spec:
+      serviceAccountName: authz-sa
+      containers:
+        - name: authz
+          image: australia-southeast1-docker.pkg.dev/field-engineering-apac/public-repo/authz-server:v0.1.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - --port=9001
+          ports:
+            - containerPort: 9001
+          env:
+            - name: AUTHZ_AUDIENCES
+              valueFrom:
+                configMapKeyRef:
+                  name: authz-config
+                  key: allowed-aud
+            - name: AUTHZ_SERVER_KEY_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: authz-config
+                  key: server-key-id
+            - name: AUTHZ_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: authz-config
+                  key: issuer
+            - name: AUTHZ_ORG
+              valueFrom:
+                configMapKeyRef:
+                  name: authz-config
+                  key: org
+            - name: PRIVATE_KEY_FILE
+              value: /data/certs/private.key
+            - name: PUBLIC_VERIFY_KEY_FILE
+              value: /data/certs/pub.pem
+            - name: MAX_CONCURRENT_STREAMS
+              value: "65535"
+          volumeMounts:
+            - name: keyfile
+              mountPath: "/data/certs"
+              readOnly: true
+      volumes:
+        - name: keyfile
+          secret:
+            secretName: signing-verify-keys

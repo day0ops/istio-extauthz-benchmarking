@@ -1,0 +1,22 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: signing-verify-keys
+  namespace: authz
+type: Opaque
+data:
+  private.key: $AUTHZ_SIGNING_KEY
+  pub.pem: $AUTHZ_VER_KEY
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authz-config
+  namespace: authz
+data:
+  allowed-aud: "$AUDIENCE"
+  server-key-id: "$KEY_ID"
+  issuer: "$ACCOUNT_EMAIL"
+  org: "$ORG"
+---

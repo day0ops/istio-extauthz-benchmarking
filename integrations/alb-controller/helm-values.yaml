@@ -1,0 +1,11 @@
+clusterName: "${CLUSTER_NAME}" 
+
+serviceAccount:
+  # Generated externally
+  create: false 
+  name: alb-ingress-controller
+
+region: $EKS_CLUSTER_REGION
+vpcId: $VPC_ID
+
+replicaCount: 1

@@ -1,0 +1,50 @@
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+ name: httpbin-request-authn-policy
+ namespace: apps
+spec:
+  selector:
+    matchLabels:
+      app: httpbin
+      version: v1
+  jwtRules:
+    - issuer: "$ACCOUNT_EMAIL"
+      audiences:
+        - "$AUDIENCE"
+      jwks: >
+        $JWKS_STRING
+      forwardOriginalToken: true
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: httpbin-authz-policy
+  namespace: apps
+spec:
+  action: ALLOW
+  selector:
+    matchLabels:
+      app: httpbin
+      version: v1
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/istio-ingress/sa/istio-ingressgateway-$ISTIO_REVISION"]
+      to:
+        - operation:
+            methods: ["GET"]
+      when:
+        - key: request.auth.claims[iss]
+          values: ["$ACCOUNT_EMAIL"]
+        - key: request.auth.claims[aud]
+          values: ["$AUDIENCE"]
+---
+## default deny all
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all-default
+  namespace: apps
+spec:
+  {}

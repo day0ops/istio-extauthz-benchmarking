@@ -1,0 +1,13 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Sidecar
+metadata:
+  name: allowed-egress
+  namespace: authz
+spec:
+  workloadSelector:
+    labels:
+      app: authz-server
+  egress:
+    - hosts:
+        - "./*"
+        - "istio-ingress/*"

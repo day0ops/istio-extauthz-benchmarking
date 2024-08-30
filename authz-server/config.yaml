@@ -1,0 +1,84 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: authz-server-vs
+  namespace: authz
+spec:
+  hosts:
+    - authz-server
+  gateways:
+    - mesh
+  http:      
+    - route:
+        - destination:
+            host: authz-server
+            port:
+              number: 9001
+      match:
+        - port: 9001
+      #timeout: 5m
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: authz-server-dr
+  namespace: authz
+spec:
+  host: authz-server.authz.svc
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: authz-server-peer-authn-policy
+  namespace: authz
+spec:
+  selector:
+    matchLabels:
+      app: authz-server
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: authz-server-authz-policy
+  namespace: authz
+spec:
+  action: ALLOW
+  selector:
+    matchLabels:
+      app: authz-server
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/istio-ingress/sa/istio-ingressgateway-$ISTIO_REVISION"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: ext-authz
+  namespace: istio-config
+spec:
+  selector:
+    matchLabels:
+      istio: ingressgateway
+  action: CUSTOM
+  provider:
+    name: "custom-ext-authz-grpc"
+  rules:
+    - to:
+        - operation:
+            paths: ["/*"]
+---  
+## default deny all
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all-authz
+  namespace: authz
+spec:
+  {}
+---
