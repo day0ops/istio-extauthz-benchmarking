@@ -73,13 +73,14 @@ Using Istio version 1.19.7.
 
     ```bash
     kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-$ISTIO_MINOR_VERSION/samples/addons/prometheus.yaml
-    kubectl apply -f grafana/deploy.yaml
+    kubectl apply -f integrations/grafana/deploy.yaml
     kubectl apply -f https://raw.githubusercontent.com/istio/istio/release-$ISTIO_MINOR_VERSION/samples/addons/kiali.yaml
 
     helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
     helm install kube-state-metrics prometheus-community/kube-state-metrics -n kube-system
 
     # add dashboards to grafana
+    kubectl port-forward svc/grafana -n istio-system 3000
     GRAFANA_HOST="http://localhost:3000"
     GRAFANA_CRED="USER:PASSWORD"
     GRAFANA_DATASOURCE="Prometheus"
